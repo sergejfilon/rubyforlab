@@ -1,5 +1,23 @@
 require_relative './spec_helper.rb'
 
+RSpec::Matchers.define :contain_comment_with_text do |text|
+  match do |comment_array|
+    !comment_array.index { |item| item.message == text }.nil?
+  end
+end
+
+RSpec::Matchers.define :contain_document_with_author do |author|
+  match do |doc_array|
+    !doc_array.index { |item| item.metadata.author == author }.nil?
+  end
+end
+
+RSpec::Matchers.define :contain_comment_with_specific_date do |date|
+  match do |doc|
+    !doc.comments.index { |item| item.date.to_date == date.to_date }.nil?
+  end
+end
+
 RSpec.describe Document do
   let(:doc) { DocumentFactory.standart_document }
 
@@ -96,6 +114,84 @@ RSpec.describe Document do
     doc.register
     doc.remove_signer(dup_principal)
     expect(doc.metadata.signers).to include(dup_principal)
+  end
+
+  it 'can add comment if comments allowed' do
+    c1 = Comment.new('comment text', dup_principal)
+    doc.add_comment(c1)
+    expect(doc.comments).to contain_comment_with_text('comment text')
+  end
+
+  it 'can turn comments on' do
+    doc.turn_comments_off
+    doc.turn_comments_on
+    expect(doc.comment_allowed?).to be true
+  end
+
+  it 'cannot add comment if comments not allowed' do
+    doc.turn_comments_off
+    c1 = Comment.new('comment text', dup_principal)
+    doc.add_comment(c1)
+    expect(doc.comments).not_to contain_comment_with_text('comment text')
+  end
+
+  it 'cannot add comment with more than 50 symbols' do
+    com_text = 'a' * 51
+    c1 = Comment.new(com_text, dup_principal)
+    doc.add_comment(c1)
+    expect(doc.comments).not_to contain_comment_with_text(com_text)
+  end
+
+  it 'after adding comment, its storing comment date' do
+    c1 = Comment.new('comment text', dup_principal)
+    doc.add_comment(c1)
+    expect(doc).to contain_comment_with_specific_date(Time.new)
+  end
+
+  it 'can turn off comment writing' do
+    c1 = Comment.new('comment turn on', dup_principal)
+    doc.add_comment(c1)
+    doc.turn_comments_off
+    c2 = Comment.new('comment turn off', dup_principal)
+    doc.add_comment(c2)
+    expect(doc.comment_allowed?).to be false
+    expect(doc.comments).to contain_comment_with_text('comment turn on')
+    expect(doc.comments).not_to contain_comment_with_text('comment turn off')
+  end
+
+  it 'cannot add comment with empty text' do
+    c1 = Comment.new('', dup_principal)
+    doc.add_comment(c1)
+    expect(doc.comments).not_to contain_comment_with_text('')
+  end
+
+  it 'can add comment with minimum text size' do
+    c1 = Comment.new('q', dup_principal)
+    doc.add_comment(c1)
+    expect(doc.comments).to contain_comment_with_text('q')
+  end
+
+  it 'can add comment with maximum text size' do
+    c1 = Comment.new('a' * 50, dup_principal)
+    doc.add_comment(c1)
+    expect(doc.comments).to contain_comment_with_text('a' * 50)
+  end
+
+  it 'can remove comment' do
+    c1 = Comment.new('comment text', dup_principal)
+    comment_amount = doc.comments.size
+    doc.add_comment(c1)
+    doc.remove_comment(0)
+    expect(doc.comments.size).to eq(comment_amount)
+  end
+
+  it 'can clear all comments' do
+    c1 = Comment.new('comment text1', dup_principal)
+    c2 = Comment.new('comment text2', dup_principal)
+    doc.add_comment(c1)
+    doc.add_comment(c2)
+    doc.clear_comments
+    expect(doc.comments).to be_empty
   end
 
   it 'after filtering user can see documents where he is signer or author' do

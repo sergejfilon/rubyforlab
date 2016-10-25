@@ -1,6 +1,7 @@
 # Document state
 class DocumentState
   def initialize
+    @comments_allowed = true
     @registered_status = false
     @modified = nil
   end
@@ -17,5 +18,13 @@ class DocumentState
     @registered_status
   end
 
-  attr_reader :registered_status, :modified
+  def comments_on
+    @comments_allowed = true
+  end
+
+  def comments_off
+    @comments_allowed = false
+  end
+
+  attr_reader :comments_allowed, :registered_status, :modified
 end

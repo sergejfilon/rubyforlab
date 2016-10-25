@@ -7,6 +7,7 @@ class Document
   def initialize(metadata)
     @metadata = metadata
     @document_version = 1
+    @comments = []
     @document_state = DocumentState.new
   end
 
@@ -43,5 +44,31 @@ class Document
     @document_version += 1 unless w_reg?
   end
 
-  attr_reader :metadata, :document_version, :document_status
+  def add_comment(commentt)
+    comm_len = commentt.message.length
+    return unless @document_state.comments_allowed && comm_len.between?(1, 50)
+    comments.push(commentt)
+  end
+
+  def remove_comment(index)
+    comments.delete_at(index)
+  end
+
+  def clear_comments
+    comments.clear
+  end
+
+  def comment_allowed?
+    @document_state.comments_allowed
+  end
+
+  def turn_comments_off
+    @document_state.comments_off
+  end
+
+  def turn_comments_on
+    @document_state.comments_on
+  end
+
+  attr_reader :metadata, :document_version, :comments, :document_status
 end
