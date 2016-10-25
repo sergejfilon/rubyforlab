@@ -97,4 +97,38 @@ RSpec.describe Document do
     doc.remove_signer(dup_principal)
     expect(doc.metadata.signers).to include(dup_principal)
   end
+
+  it 'after filtering user can see documents where he is signer or author' do
+    docs = DocumentFactory.all_documents
+    principal = Principal.new('Alejandro', 'Dominguez', 'Architect', 'bbb')
+    filtered_indexes = DocumentFilter.filter_author_signer(docs, principal)
+    expect(filtered_indexes).to include(1, 2)
+  end
+
+  it 'after filtering user can see documents where he is author' do
+    docs = DocumentFactory.all_documents
+    principal = Principal.new('Alejandro', 'Dominguez', 'Architect', 'bbb')
+    filtered_indexes = DocumentFilter.filter_author(docs, principal)
+    expect(filtered_indexes).to include(1)
+  end
+
+  it 'use cant see document if he is not author or signer' do
+    dcs = DocumentFactory.all_documents
+    p = Principal.new('Alejandro', 'Dominguez', 'Architect', 'bbb')
+    filtered_indexes = DocumentFilter.filter_author_signer(dcs, p)
+    bad_indexes = filtered_indexes.find do |x|
+      dcs.at(x).metadata.author != p && !dcs.at(x).metadata.signers.include?(p)
+    end
+    expect(bad_indexes).to be_nil
+  end
+
+  it 'user cant see document if he is not author' do
+    docs = DocumentFactory.all_documents
+    principal = Principal.new('Alejandro', 'Dominguez', 'Architect', 'bbb')
+    filtered_indexes = DocumentFilter.filter_author(docs, principal)
+    bad_indexes = filtered_indexes.find do |x|
+      docs.at(x).metadata.author != principal
+    end
+    expect(bad_indexes).to be_nil
+  end
 end
